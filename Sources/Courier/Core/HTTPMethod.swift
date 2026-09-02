@@ -1,10 +1,3 @@
-//
-//  HTTPMethod.swift
-//  Courier
-//
-//  Created by Ayşegül takır on 2.09.2026.
-//
-
 import Foundation
 
 public enum HTTPMethod: String {
