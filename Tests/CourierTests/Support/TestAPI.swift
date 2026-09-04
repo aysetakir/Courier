@@ -26,7 +26,7 @@ enum TestAPI: Endpoint {
         case .create:         return .post
         }
     }
-
+    
     var queryItems: [URLQueryItem]? {
         switch self {
         case .plain, .create:

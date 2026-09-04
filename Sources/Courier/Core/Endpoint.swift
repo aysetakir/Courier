@@ -16,4 +16,9 @@ public extension Endpoint {
     var queryItems: [URLQueryItem]? { nil }
     var body: RequestBody? { nil }
     var requiresAuthentication: Bool { true }
+    func makeURLRequest() throws -> URLRequest {
+        throw NotImplemented()
+    }
 }
+
+struct NotImplemented: Error {}
