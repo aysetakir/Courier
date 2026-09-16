@@ -24,8 +24,7 @@ struct URLRequestBuilderTests {
     func omitsQuestionMarkWhenThereIsNoQuery() throws {
         let request = try TestAPI.plain.makeURLRequest()
 
-        // URLComponents'a boş bir dizi verirsen sonuna "?" yapıştırır.
-        // Gözle fark edilmesi zor, ama bazı sunucular bunu farklı bir yol sayar.
+        // Boş dizi verilirse URLComponents sonuna "?" yapıştırır.
         let url = try #require(request.url?.absoluteString)
         #expect(!url.contains("?"))
     }
@@ -34,7 +33,7 @@ struct URLRequestBuilderTests {
     func percentEncodesQueryValues() throws {
         let request = try TestAPI.search(query: "iOS geliştirici").makeURLRequest()
 
-        // Boşluk -> %20, ş (U+015F) -> UTF-8'de C5 9F -> %C5%9F
+        // Boşluk -> %20, ş -> %C5%9F
         #expect(
             request.url?.absoluteString
                 == "https://api.example.com/users/search?q=iOS%20geli%C5%9Ftirici"
@@ -57,7 +56,7 @@ struct URLRequestBuilderTests {
     func getRequestHasNoBody() throws {
         let request = try TestAPI.plain.makeURLRequest()
 
-        // Builder kendiliğinden boş bir gövde ya da Content-Type uydurmamalı.
+        // Builder kendiliğinden gövde ya da Content-Type uydurmamalı.
         #expect(request.httpBody == nil)
         #expect(request.value(forHTTPHeaderField: "Content-Type") == nil)
     }
@@ -66,8 +65,7 @@ struct URLRequestBuilderTests {
     func endpointHeadersWinOverDefaults() throws {
         let request = try TestAPI.createV2(name: "Ayşegül").makeURLRequest()
 
-        // Karar: endpoint'in headers'ı en son uygulanır. Böylece özel bir
-        // medya tipi kullanan uçlar builder'ı değiştirmeden çalışabilir.
+        // Karar: uç kendi Content-Type'ını yazabilir.
         #expect(
             request.value(forHTTPHeaderField: "Content-Type")
                 == "application/vnd.example.v2+json"

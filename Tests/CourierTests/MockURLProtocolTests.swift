@@ -33,8 +33,7 @@ struct MockURLProtocolTests {
 
     @Test("handler giden isteği görebiliyor")
     func handlerSeesOutgoingRequest() async throws {
-        // Adım 13'te "gönderilen istekte Authorization header'ı var mı" gibi
-        // şeyleri böyle doğrulayacağız.
+        // Giden isteği doğrulamak için gereken yetenek (bkz. AuthInterceptor).
         let session = MockURLProtocol.makeSession { request in
             let echoed = Data((request.url?.absoluteString ?? "").utf8)
             let response = HTTPURLResponse(

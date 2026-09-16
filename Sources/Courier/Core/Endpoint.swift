@@ -17,27 +17,16 @@ public extension Endpoint {
     var body: RequestBody? { nil }
     var requiresAuthentication: Bool { true }
 
-    /// Tarifi (`Endpoint`) gerçek isteğe (`URLRequest`) çeviren köprü.
-    ///
-    /// Bilerek protokol gereksinimi değil, sadece extension'da: her uç için
-    /// aynı şekilde çalışmasını istiyoruz. Uçların özelleştirebileceği yer
-    /// yukarıdaki alanlar, bu fonksiyonun gövdesi değil.
-    ///
-    /// `encoder` parametre olarak alınıyor çünkü JSON gövdenin nasıl
-    /// kodlanacağına (tarih formatı, snake_case) uygulama karar verir —
-    /// adım 6'da `HTTPClient` kendi encoder'ını buraya geçirecek.
+    /// Uçların özelleştireceği yer yukarıdaki alanlar, bu fonksiyon değil;
+    /// o yüzden protokol gereksinimi değil.
     func makeURLRequest(encoder: JSONEncoder = JSONEncoder()) throws -> URLRequest {
-        // URL'i string birleştirerek kurmuyoruz. "?q=iOS geliştirici" gibi bir
-        // string'den URL üretmeye çalışırsan nil alırsın; URLComponents
-        // encode'u kendisi halleder.
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             throw NetworkError.invalidURL
         }
 
         components.path = joinedPath(base: components.path, adding: path)
 
-        // Boş dizi vermek URL'in sonuna çıplak bir "?" yapıştırır.
-        // Query yoksa alanı hiç doldurmuyoruz.
+        // Boş dizi URL'in sonuna çıplak bir "?" yapıştırır.
         if let queryItems, !queryItems.isEmpty {
             components.queryItems = queryItems
         }
@@ -49,24 +38,18 @@ public extension Endpoint {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
 
-        // Gövde yoksa httpBody'ye de Content-Type'a da hiç dokunmuyoruz:
-        // boş bir Data ya da uydurma bir Content-Type göndermek, sunucunun
-        // isteği farklı yorumlamasına sebep olabilir.
         if let body {
             switch body {
             case .json(let value):
                 do {
                     request.httpBody = try encoder.encode(value)
                 } catch {
-                    // Burası sunucunun değil bizim hatamız: model Encodable
-                    // sözleşmesini tutturamadı.
                     throw NetworkError.encoding(error)
                 }
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
             case .data(let data):
-                // Ham veride içeriğin ne olduğunu bilmiyoruz (PDF? PNG?).
-                // Content-Type'ı uydurmak yerine uca bırakıyoruz.
+                // İçeriğin ne olduğunu bilmiyoruz, Content-Type'ı uca bırakıyoruz.
                 request.httpBody = data
 
             case .form(let fields):
@@ -78,11 +61,7 @@ public extension Endpoint {
             }
         }
 
-        // Karar: endpoint'in kendi header'ları EN SON uygulanıyor, yani
-        // yukarıda yazdığımız Content-Type'ı ezebilirler. Sebebi: bizim
-        // yazdığımız değer makul bir varsayılan, kural değil. Özel bir medya
-        // tipi kullanan uç (application/vnd.example.v2+json) kütüphaneyi
-        // değiştirmek zorunda kalmamalı.
+        // En son uygulanıyor ki uç, yukarıdaki Content-Type'ı ezebilsin.
         for (name, value) in headers {
             request.setValue(value, forHTTPHeaderField: name)
         }
@@ -91,11 +70,7 @@ public extension Endpoint {
     }
 }
 
-/// baseURL'in path'i ile uç path'ini, aradaki "/" sayısı ne olursa olsun
-/// tek bir "/" ile birleştirir.
-///
-/// baseURL "https://api.example.com/v1" + path "users" -> "/v1/users"
-/// baseURL "https://api.example.com/"   + path "/users" -> "/users"
+/// Aradaki "/" sayısı ne olursa olsun tek bir "/" ile birleştirir.
 private func joinedPath(base: String, adding path: String) -> String {
     let trimmedBase = base.hasSuffix("/") ? String(base.dropLast()) : base
     guard !path.isEmpty else { return trimmedBase }
@@ -103,10 +78,7 @@ private func joinedPath(base: String, adding path: String) -> String {
     return trimmedBase + prefixedPath
 }
 
-/// `key=value&key=value` — her parçası percent-encode edilmiş halde.
-///
-/// Anahtarlar sıralanıyor: Dictionary'nin sırası her çalıştırmada değişir,
-/// sıralamazsak aynı gövde farklı byte'lar üretir ve test edilemez hale gelir.
+/// Anahtarlar sıralı, yoksa aynı gövde her çalıştırmada farklı byte üretir.
 private func formURLEncoded(_ fields: [String: String]) -> String {
     fields
         .sorted { $0.key < $1.key }
@@ -115,8 +87,7 @@ private func formURLEncoded(_ fields: [String: String]) -> String {
 }
 
 private func percentEncodedFormComponent(_ string: String) -> String {
-    // RFC 3986'nın "unreserved" kümesi. Kalan her şey (& = + boşluk dahil)
-    // encode edilmeli, yoksa değerin içindeki bir "&" alan sınırı sanılır.
+    // RFC 3986 "unreserved" kümesi.
     var allowed = CharacterSet.alphanumerics
     allowed.insert(charactersIn: "-._~")
     return string.addingPercentEncoding(withAllowedCharacters: allowed) ?? string

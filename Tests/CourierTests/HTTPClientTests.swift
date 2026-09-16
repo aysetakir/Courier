@@ -36,8 +36,7 @@ struct HTTPClientTests {
             return
         }
         #expect(statusCode == 500)
-        // Asıl mesele bu satır: status code'u alıp gövdeyi çöpe atsaydık
-        // kullanıcıya gösterilecek gerçek mesajı kaybederdik.
+        // Asıl mesele: gövde kaybolmuyor.
         #expect(String(decoding: data, as: UTF8.self) == errorBody)
         #expect(error.isRetryable)
     }
@@ -73,7 +72,7 @@ struct HTTPClientTests {
 
     @Test("bozuk JSON .decoding'e dönüşüyor ve ham veri hatada duruyor")
     func decodingFailureKeepsRawData() async throws {
-        let malformed = #"{"id":"42","nmae":"Ayşegül"}"#  // alan adı yanlış yazılmış
+        let malformed = #"{"id":"42","nmae":"Ayşegül"}"#  // alan adı yanlış
         let client = HTTPClient(session: MockURLProtocol.makeSession(data: Data(malformed.utf8)))
 
         let error = try #require(
@@ -86,7 +85,6 @@ struct HTTPClientTests {
             Issue.record("Beklenen .decoding, gelen: \(error)")
             return
         }
-        // Bu satır olmasaydı "API bozuk" diye saatlerce yanlış yerde ararsın.
         #expect(String(decoding: raw, as: UTF8.self) == malformed)
     }
 
@@ -114,8 +112,7 @@ struct HTTPClientTests {
 
     @Test("iptal edilen istek CancellationError fırlatıyor")
     func cancellationThrowsCancellationError() async throws {
-        // Handler'ı yavaşlatıyoruz, yoksa istek iptal yetişmeden biter ve
-        // test yanlış sebepten yeşil olur.
+        // Gecikme olmazsa istek iptal yetişmeden biter, test yanlış sebepten yeşil olur.
         let client = HTTPClient(
             session: MockURLProtocol.makeSession { request in
                 Thread.sleep(forTimeInterval: 0.3)
@@ -131,7 +128,7 @@ struct HTTPClientTests {
         try await Task.sleep(for: .milliseconds(50))
         task.cancel()
 
-        // NetworkError.transport değil: iptal bir ağ hatası değil, akış kontrolü.
+        // .transport değil: iptal ağ hatası değil.
         await #expect(throws: CancellationError.self) {
             _ = try await task.value
         }

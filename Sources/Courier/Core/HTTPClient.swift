@@ -1,16 +1,9 @@
 import Foundation
 
-/// `Endpoint` alır, isteği atar, sonucu modele çevirir.
+/// Endpoint alır, isteği atar, sonucu modele çevirir.
 ///
-/// **Neden `actor` değil:** Actor, aynı anda birden fazla yerden erişilen
-/// *değişken* durumu korumak için var. Buradaki üç alanın üçü de `let` —
-/// kurulduktan sonra hiçbiri değişmiyor. Korunacak durum yokken actor
-/// kullanmak hiçbir güvenlik kazandırmaz, sadece her çağrıya gereksiz bir
-/// `await` ve bir bağlam değişimi ekler.
-///
-/// (Adım 11'deki `TokenRefresher`'da gerçekten değişken durum olacak —
-/// devam eden yenileme task'ı — ve orada actor gerçekten gerekli olacak.
-/// Farkı görmek için bu iki tipi yan yana koy.)
+/// Actor değil: üç alan da `let`, korunacak değişken durum yok. Actor sadece
+/// her çağrıya gereksiz bir await eklerdi. (TokenRefresher'da durum farklı.)
 public final class HTTPClient: HTTPClientProtocol {
 
     private let session: URLSession
@@ -28,7 +21,6 @@ public final class HTTPClient: HTTPClientProtocol {
     }
 
     public func send(_ endpoint: any Endpoint) async throws -> Data {
-        // İptal edilmiş bir task için istek kurmaya başlamanın anlamı yok.
         try Task.checkCancellation()
 
         let request = try endpoint.makeURLRequest(encoder: encoder)
@@ -38,11 +30,7 @@ public final class HTTPClient: HTTPClientProtocol {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            // İptal bir ağ hatası DEĞİL, akış kontrolü. URLSession bunu
-            // URLError(.cancelled) olarak bildiriyor ama biz Swift'in
-            // standart sinyaline çeviriyoruz: çağıran taraf `catch is
-            // CancellationError` yazabilsin, ve bu asla "tekrar dene"
-            // dalına düşmesin (adım 9).
+            // İptal bir ağ hatası değil, akış kontrolü: retry döngüsüne düşmesin.
             if error is CancellationError { throw error }
             if let urlError = error as? URLError, urlError.code == .cancelled {
                 throw CancellationError()
@@ -57,15 +45,10 @@ public final class HTTPClient: HTTPClientProtocol {
         switch httpResponse.statusCode {
         case 200..<300:
             return data
-
         case 401:
-            // Ayrı case, çünkü tek başına farklı bir tepkisi var:
-            // token yenile ve tekrarla (adım 13).
             throw NetworkError.unauthorized
-
         default:
-            // Gövdeyi ATMIYORUZ. API'nin asıl hata mesajı orada:
-            // {"error": "email already registered"}
+            // Gövdeyi atmıyoruz; API'nin asıl hata mesajı orada.
             throw NetworkError.server(statusCode: httpResponse.statusCode, data: data)
         }
     }
@@ -78,8 +61,6 @@ public final class HTTPClient: HTTPClientProtocol {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            // Ham veriyi hataya iliştiriyoruz: decoding hatasını ayıklamanın
-            // tek yolu sunucunun gerçekte ne gönderdiğini görmek.
             throw NetworkError.decoding(error, raw: data)
         }
     }

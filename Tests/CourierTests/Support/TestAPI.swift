@@ -9,8 +9,7 @@ enum TestAPI: Endpoint {
     case plain
     case search(query: String)
     case create(name: String)
-    /// Kendi Content-Type'ını yazan uç: builder'ın yazdığı varsayılanı
-    /// ezebildiğini doğrulamak için var.
+    /// Kendi Content-Type'ını yazan uç.
     case createV2(name: String)
 
     var baseURL: URL { URL(string: "https://api.example.com")! }
