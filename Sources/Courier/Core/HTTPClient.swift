@@ -9,21 +9,28 @@ public final class HTTPClient: HTTPClientProtocol {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let interceptors: [any RequestInterceptor]
 
     public init(
         session: URLSession = .shared,
         decoder: JSONDecoder = JSONDecoder(),
-        encoder: JSONEncoder = JSONEncoder()
+        encoder: JSONEncoder = JSONEncoder(),
+        interceptors: [any RequestInterceptor] = []
     ) {
         self.session = session
         self.decoder = decoder
         self.encoder = encoder
+        self.interceptors = interceptors
     }
 
     public func send(_ endpoint: any Endpoint) async throws -> Data {
         try Task.checkCancellation()
 
-        let request = try endpoint.makeURLRequest(encoder: encoder)
+        var request = try endpoint.makeURLRequest(encoder: encoder)
+        // Sırayla: her interceptor bir öncekinin çıktısı üzerine yazar.
+        for interceptor in interceptors {
+            request = try await interceptor.adapt(request, for: endpoint)
+        }
 
         let data: Data
         let response: URLResponse
