@@ -23,7 +23,35 @@ dependencies: [
 
 Xcode'da: **File → Add Package Dependencies…** → `https://github.com/aysetakir/Courier.git`
 
-## Kullanım
+## Hızlı başlangıç
+
+Üç adım: ucu tarif et, istemciyi oluştur, isteği at.
+
+```swift
+import Courier
+
+// 1. API ucunu tarif et
+struct GetUser: Endpoint {
+    let id: String
+    var baseURL: URL { URL(string: "https://api.example.com")! }
+    var path: String { "/users/\(id)" }
+}
+
+struct User: Decodable, Sendable {
+    let id: String
+    let name: String
+}
+
+// 2. İstemciyi oluştur
+let client = HTTPClient()
+
+// 3. İsteği at — yanıt doğrudan modele çevrilir
+let user: User = try await client.send(GetUser(id: "42"))
+```
+
+Token ekleme, otomatik yenileme ve loglama için aşağıdaki ayrıntılı kullanıma bak.
+
+## Ayrıntılı kullanım
 
 ### 1. Endpoint tanımla
 
@@ -290,9 +318,3 @@ swift test
 
 Testler ağa çıkmaz: `MockURLProtocol`, gerçek `URLSession` kod yolunu çalıştırıp
 sahte yanıt döndürür. Böylece `URLSession`'ı protokolle sarmalamaya gerek kalmaz.
-
-## Yol haritası
-
-- [x] v0.1 — `Endpoint`, `URLRequest` üretimi, `HTTPClient`, hata taksonomisi, `URLProtocol` ile testler
-- [x] v1.0 — Interceptor zinciri, auth header, single-flight token refresh, retry + backoff, loglama
-- [ ] Sonrası — Multipart upload, `Retry-After` header desteği, Keychain token deposu örneği
