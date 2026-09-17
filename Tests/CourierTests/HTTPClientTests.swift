@@ -22,7 +22,8 @@ struct HTTPClientTests {
     func preservesServerErrorBody() async throws {
         let errorBody = #"{"error":"email already registered"}"#
         let client = HTTPClient(
-            session: MockURLProtocol.makeSession(statusCode: 500, data: Data(errorBody.utf8))
+            session: MockURLProtocol.makeSession(statusCode: 500, data: Data(errorBody.utf8)),
+            retryPolicy: .immediate
         )
 
         let error = try #require(
@@ -93,7 +94,8 @@ struct HTTPClientTests {
         let client = HTTPClient(
             session: MockURLProtocol.makeSession { _ in
                 throw URLError(.notConnectedToInternet)
-            }
+            },
+            retryPolicy: .immediate
         )
 
         let error = try #require(

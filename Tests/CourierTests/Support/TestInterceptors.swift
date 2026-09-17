@@ -33,3 +33,15 @@ struct FailingInterceptor: RequestInterceptor {
         throw InterceptorFailure()
     }
 }
+
+/// Her hatada koşulsuz tekrar ister; tavanın interceptor'ları da bağladığını kanıtlar.
+struct AlwaysRetryInterceptor: RequestInterceptor {
+    func retry(
+        _ request: URLRequest,
+        for endpoint: any Endpoint,
+        dueTo error: any Error,
+        attempt: Int
+    ) async -> RetryDecision {
+        .retry
+    }
+}
