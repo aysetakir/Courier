@@ -123,6 +123,10 @@ public final class HTTPClient: HTTPClientProtocol {
             throw NetworkError.invalidResponse
         }
 
+        for interceptor in interceptors {
+            await interceptor.didReceive(httpResponse, data: data, for: request)
+        }
+
         switch httpResponse.statusCode {
         case 200..<300:
             return data
