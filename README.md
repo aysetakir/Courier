@@ -1,5 +1,7 @@
 # Courier
 
+[![CI](https://github.com/aysetakir/Courier/actions/workflows/ci.yml/badge.svg)](https://github.com/aysetakir/Courier/actions/workflows/ci.yml)
+
 Swift için async/await tabanlı, bağımlılığı olmayan HTTP istemcisi.
 
 Tip güvenli endpoint'ler, zincirlenebilir interceptor'lar, üstel backoff ile
